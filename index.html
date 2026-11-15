@@ -4,6 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Q.C Software - Mapa das Máquinas</title>
+
+    <!-- Bloqueio imediato caso não esteja autenticado -->
+    <script>
+        if (!sessionStorage.getItem('qc_token')) {
+            window.location.replace('login.html');
+        }
+
+        // Intercepta automaticamente todas as chamadas fetch para /api/ enviando o token
+        const _fetchOriginal = window.fetch;
+        window.fetch = async function(resource, config = {}) {
+            const url = typeof resource === 'string' ? resource : resource.url;
+            if (url && url.includes('/api/')) {
+                const token = sessionStorage.getItem('qc_token');
+                config.headers = {
+                    ...(config.headers || {}),
+                    'Authorization': `Bearer ${token}`
+                };
+            }
+            const response = await _fetchOriginal(resource, config);
+            if (response.status === 401) {
+                sessionStorage.removeItem('qc_token');
+                sessionStorage.removeItem('qc_usuario');
+                window.location.replace('login.html');
+            }
+            return response;
+        };
+
+        function sairDoSistema() {
+            fetch('/api/logout', { method: 'POST' }).finally(() => {
+                sessionStorage.clear();
+                window.location.replace('login.html');
+            });
+        }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
@@ -37,7 +72,7 @@
             margin-bottom: 20px;
         }
         .header-left {
-            width: 180px;
+            width: 240px;
             flex-shrink: 0;
             text-align: left;
         }
@@ -63,9 +98,12 @@
         .header-center p { color: #a4b0be; margin: 5px 0 0 0; font-weight: 400; font-size: 13px; }
         
         .header-right {
-            width: 180px;
+            width: 240px;
             flex-shrink: 0;
-            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
         }
         .btn-navegacao {
             display: inline-flex;
@@ -74,15 +112,24 @@
             background-color: #0284c7;
             color: #ffffff;
             text-decoration: none;
-            padding: 10px 16px;
+            padding: 10px 14px;
             border-radius: 6px;
             font-size: 13px;
             font-weight: 600;
+            border: none;
+            cursor: pointer;
+            font-family: 'Roboto', sans-serif;
             transition: background-color 0.2s;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .btn-navegacao:hover {
             background-color: #0369a1;
+        }
+        .btn-sair {
+            background-color: #e74c3c;
+        }
+        .btn-sair:hover {
+            background-color: #c0392b;
         }
         
         #banner-alerta { 
@@ -113,13 +160,13 @@
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 20px 15px;
             width: 100%;
-            height: auto; /* Deixa de ser fixo em 840px para não estourar a tela */
+            height: auto;
             margin: 0 auto;
         }
 
         /* Estilo base unificado para cada bloco de máquina */
         .maquina-container {
-            position: relative !important; /* Força ignorar o absolute injetado pelo app.js em telas menores */
+            position: relative !important;
             top: auto !important;
             left: auto !important;
             display: flex;
@@ -211,21 +258,21 @@
 
         /* --- REGRAS DE RESPONSIVIDADE (MEDIA QUERIES) --- */
         
-        /* COMPUTADORES E MONITORES GRANDES (Mantém a distribuição linear ampla) */
+        /* COMPUTADORES E MONITORES GRANDES */
         @media (min-width: 1025px) {
             #mapa-conteiner {
-                grid-template-columns: repeat(10, 1fr); /* 10 colunas perfeitas idênticas à imagem 1 */
+                grid-template-columns: repeat(10, 1fr);
             }
         }
 
-        /* TABLETS (Telas médias de 651px até 1024px) */
+        /* TABLETS */
         @media (max-width: 1024px) {
             #mapa-conteiner {
-                grid-template-columns: repeat(6, 1fr); /* Reorganiza para 6 colunas ordenadas */
+                grid-template-columns: repeat(6, 1fr);
             }
         }
 
-        /* SMARTPHONES (Telas pequenas até 650px) */
+        /* SMARTPHONES */
         @media (max-width: 650px) {
             .header-container {
                 flex-direction: column;
@@ -241,11 +288,10 @@
                 margin: 0 auto;
             }
             .header-right {
-                display: flex;
                 justify-content: center;
             }
             #mapa-conteiner {
-                grid-template-columns: repeat(3, 1fr); /* Organiza de 3 em 3 de forma limpa, sem cortar */
+                grid-template-columns: repeat(3, 1fr);
                 gap: 15px 10px;
             }
             .maquina-icone {
@@ -288,8 +334,16 @@
         <div class="header-right">
             <a href="dashboard.html" class="btn-navegacao">
                 <i class="fa-solid fa-chart-line"></i>
-                Ver Dashboard
+                Dashboard
             </a>
+            <a href="relatorios.html" class="btn-navegacao" style="background-color: #0d9488;">
+                <i class="fa-solid fa-clipboard-list"></i>
+                Relatórios
+            </a>
+            <button type="button" onclick="sairDoSistema()" class="btn-navegacao btn-sair">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Sair
+            </button>
         </div>
     </header>
     

@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Q.C Software - Dashboard</title>
+
+    <!-- Bloqueio imediato caso não esteja autenticado -->
+    <script>
+        if (!sessionStorage.getItem('qc_token')) {
+            window.location.replace('login.html');
+        }
+    </script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -29,7 +37,7 @@
             border-bottom: 1px solid #334155;
         }
         .header-left {
-            width: 180px;
+            width: 260px;
             flex-shrink: 0;
             text-align: left;
         }
@@ -59,9 +67,12 @@
             letter-spacing: 0.3px;
         }
         .header-right {
-            width: 180px;
+            width: 260px;
             flex-shrink: 0;
-            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
         }
         .btn-navegacao {
             display: inline-flex;
@@ -70,24 +81,47 @@
             background-color: #0284c7;
             color: #ffffff;
             text-decoration: none;
-            padding: 10px 16px;
+            padding: 10px 14px;
             border-radius: 6px;
             font-size: 13px;
             font-weight: 600;
+            border: none;
+            cursor: pointer;
             transition: background-color 0.2s;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .btn-navegacao:hover {
             background-color: #0369a1;
         }
+        .btn-relatorios {
+            background-color: #0d9488;
+        }
+        .btn-relatorios:hover {
+            background-color: #0f766e;
+        }
+        .btn-sair {
+            background-color: #ef4444;
+        }
+        .btn-sair:hover {
+            background-color: #dc2626;
+        }
 
-        /* Grid de Cards Responsivo */
+        /* Grid de Cards KPI (4 colunas) */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Grid de Cards de Média de Dias (2 colunas) */
+        .cards-media-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
             margin-bottom: 35px;
         }
+
         .card-kpi {
             background-color: #1e293b;
             border-radius: 8px;
@@ -107,8 +141,14 @@
         }
         .card-kpi h3 {
             margin: 6px 0 0 0;
-            font-size: 34px;
+            font-size: 32px;
             font-weight: 700;
+        }
+        .card-kpi span.sub-info {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #64748b;
         }
         .icon-box {
             padding: 12px;
@@ -118,33 +158,57 @@
             justify-content: center;
         }
 
-        /* Container do Gráfico */
+        /* Grid de Gráficos (3 colunas) */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+        }
         .chart-wrapper {
             background-color: #1e293b;
             border-radius: 12px;
-            padding: 30px;
-            max-width: 480px;
-            margin: 0 auto;
+            padding: 25px 22px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
             border: 1px solid #334155;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-wrapper h4 {
+            margin: 0 0 5px 0;
+            text-align: center;
+            font-size: 15px;
+            color: #f1f5f9;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .chart-wrapper p {
+            margin: 0 0 20px 0;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+        .canvas-box {
+            position: relative;
+            width: 100%;
+            height: 270px;
+            margin: auto 0;
         }
 
-        /* ------------------------------------------------------------------
-           REGRAS DE RESPONSIVIDADE (MEDIA QUERIES)
-           ------------------------------------------------------------------ */
-        
-        /* TABLETS (Telas médias até 900px) */
-        @media (max-width: 900px) {
+        /* TABLETS */
+        @media (max-width: 1050px) {
             .cards-grid {
-                grid-template-columns: repeat(2, 1fr); /* Divide em blocos de 2x2 */
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
             }
         }
 
-        /* SMARTPHONES (Telas pequenas até 650px) */
+        /* SMARTPHONES */
         @media (max-width: 650px) {
             .header-container {
-                flex-direction: column; /* Empilha os elementos do cabeçalho verticalmente */
+                flex-direction: column;
                 gap: 15px;
                 padding: 20px;
                 text-align: center;
@@ -157,8 +221,11 @@
                 margin: 0 auto;
                 max-width: 140px;
             }
-            .cards-grid {
-                grid-template-columns: 1fr; /* Um card por linha inteira */
+            .header-right {
+                justify-content: center;
+            }
+            .cards-grid, .cards-media-grid {
+                grid-template-columns: 1fr;
                 gap: 15px;
             }
             .chart-wrapper {
@@ -171,7 +238,7 @@
 
     <header class="header-container">
         <div class="header-left">
-            <img src="/logoqc.png" alt="Q.C Software" width="80" height="80">
+            <img src="logoqc.png" alt="Q.C Software" width="80" height="80">
         </div>
         
         <div class="header-center">
@@ -184,19 +251,27 @@
         <div class="header-right">
             <a href="index.html" class="btn-navegacao">
                 <i class="fa-solid fa-map-location-dot"></i>
-                Ver Mapa
+                Mapa
             </a>
+            <a href="relatorios.html" class="btn-navegacao btn-relatorios">
+                <i class="fa-solid fa-clipboard-list"></i>
+                Relatórios
+            </a>
+            <button type="button" onclick="sairDoSistema()" class="btn-navegacao btn-sair">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Sair
+            </button>
         </div>
     </header>
 
-    <main style="padding: 30px; box-sizing: border-box; max-width: 1300px; margin: 0 auto;">
+    <main style="padding: 30px; box-sizing: border-box; max-width: 1360px; margin: 0 auto;">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #1e293b; padding-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; border-bottom: 1px solid #1e293b; padding-bottom: 10px;">
             <h2 style="margin: 0; font-size: 16px; color: #cbd5e1; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Indicadores de linha de produção</h2>
         </div>
 
+        <!-- Linha 1: Status em Tempo Real -->
         <section class="cards-grid">
-            
             <div class="card-kpi" style="border-left: 5px solid #38bdf8;">
                 <div>
                     <p>Total Ativos</p>
@@ -238,12 +313,55 @@
             </div>
         </section>
 
-        <section class="chart-wrapper">
-            <h4 style="margin: 0 0 5px 0; text-align: center; font-size: 16px; color: #f1f5f9; font-weight: 600; letter-spacing: 0.5px;">Distribuição Operacional dos Ativos</h4>
-            <p style="margin: 0 0 25px 0; text-align: center; color: #94a3b8; font-size: 12px;">Gráfico proporcional baseado nas 60 máquinas monitoradas</p>
-            
-            <div style="position: relative; width: 100%; max-width: 280px; margin: 0 auto; min-height: 280px;">
-                <canvas id="graficoStatus"></canvas>
+        <!-- Linha 2: Média de Dias -->
+        <section class="cards-media-grid">
+            <div class="card-kpi" style="border-left: 5px solid #ef4444;">
+                <div>
+                    <p>Média de Dias — Máquinas Paradas</p>
+                    <h3 id="card-media-parada" style="color: #ef4444;">...</h3>
+                    <span class="sub-info">Tempo médio acumulado por ocorrência registrada</span>
+                </div>
+                <div class="icon-box" style="background-color: rgba(249, 115, 22, 0.12);">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: #ef4444; font-size: 24px;"></i>
+                </div>
+            </div>
+
+            <div class="card-kpi" style="border-left: 5px solid #a855f7;">
+                <div>
+                    <p>Média de Dias — Em Manutenção</p>
+                    <h3 id="card-media-manutencao" style="color: #eab308;">...</h3>
+                    <span class="sub-info">Tempo médio de atendimento e conclusão técnica</span>
+                </div>
+                <div class="icon-box" style="background-color: rgba(168, 85, 247, 0.12);">
+                    <i class="fa-solid fa-stopwatch" style="color: #eab308; font-size: 24px;"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Linha 3: Gráficos Analíticos -->
+        <section class="charts-grid">
+            <div class="chart-wrapper">
+                <h4>Distribuição Operacional dos Ativos</h4>
+                <p>Gráfico proporcional das máquinas monitoradas</p>
+                <div class="canvas-box">
+                    <canvas id="graficoStatus"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-wrapper">
+                <h4>Máquinas que Mais Ficam Paradas</h4>
+                <p>Top 5 ativos com maior número de paradas</p>
+                <div class="canvas-box">
+                    <canvas id="graficoTopParadas"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-wrapper">
+                <h4>Máquinas que Mais Ficam em Manutenção</h4>
+                <p>Top 5 ativos com maior recorrência de manutenção</p>
+                <div class="canvas-box">
+                    <canvas id="graficoTopManutencao"></canvas>
+                </div>
             </div>
         </section>
 
@@ -253,23 +371,96 @@
     
     <script>
         let graficoStatusMaquina = null;
+        let graficoTopParadas = null;
+        let graficoTopManutencao = null;
         const DASHBOARD_API_URL = "/api/dashboard/status";
+
+        function sairDoSistema() {
+            const token = sessionStorage.getItem('qc_token');
+            fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).finally(() => {
+                sessionStorage.clear();
+                window.location.replace('login.html');
+            });
+        }
+
+        function renderizarGraficoRanking(canvasId, instanciaAtual, lista, corBarra, labelSerie) {
+            const ctx = document.getElementById(canvasId).getContext("2d");
+            if (instanciaAtual) {
+                instanciaAtual.destroy();
+            }
+
+            const labels = lista.length ? lista.map(item => item.nome) : ['Sem registros'];
+            const valores = lista.length ? lista.map(item => item.quantidade) : [0];
+
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: labelSerie,
+                        data: valores,
+                        backgroundColor: corBarra,
+                        borderRadius: 6,
+                        barThickness: 22
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { color: '#94a3b8', stepSize: 1, precision: 0 },
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#f1f5f9', font: { weight: '600', size: 12 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
 
         async function buscarEAtualizarDashboard() {
             try {
-                const resposta = await fetch(DASHBOARD_API_URL);
+                const token = sessionStorage.getItem('qc_token');
+                const resposta = await fetch(DASHBOARD_API_URL, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (resposta.status === 401) {
+                    sessionStorage.clear();
+                    window.location.replace('login.html');
+                    return;
+                }
+
                 if (!resposta.ok) throw new Error(`Código HTTP: ${resposta.status}`);
                 const dados = await resposta.json();
 
-                // 1. Atualiza números lidos do Neon
+                // 1. Atualiza números lidos do PostgreSQL
                 document.getElementById("card-total").innerText = dados.total;
                 document.getElementById("card-normal").innerText = dados.normal;
                 document.getElementById("card-parada").innerText = dados.parado;
                 document.getElementById("card-manutencao").innerText = dados.manutencao;
 
-                // 2. Reconstrói o Gráfico do Chart.js de forma limpa
+                // 2. Atualiza média de dias (paradas e manutenção)
+                const diasParada = Number(dados.media_dias_parada || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+                const diasManut = Number(dados.media_dias_manutencao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+                document.getElementById("card-media-parada").innerText = `${diasParada} dias`;
+                document.getElementById("card-media-manutencao").innerText = `${diasManut} dias`;
+
+                // 3. Reconstrói o Gráfico de Rosca (Distribuição Operacional)
                 const ctx = document.getElementById("graficoStatus").getContext("2d");
-                
                 if (graficoStatusMaquina) {
                     graficoStatusMaquina.destroy();
                 }
@@ -301,14 +492,31 @@
                     }
                 });
 
+                // 4. Constrói os Gráficos de Ranking
+                graficoTopParadas = renderizarGraficoRanking(
+                    "graficoTopParadas",
+                    graficoTopParadas,
+                    dados.top_paradas || [],
+                    "#ef4444",
+                    "Ocorrências de Parada"
+                );
+
+                graficoTopManutencao = renderizarGraficoRanking(
+                    "graficoTopManutencao",
+                    graficoTopManutencao,
+                    dados.top_manutencao || [],
+                    "#eab308",
+                    "Entradas em Manutenção"
+                );
+
             } catch (error) {
-                console.error("Falha na sincronização automatizada com o banco Neon:", error);
+                console.error("Falha na sincronização automatizada com o banco:", error);
             }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             buscarEAtualizarDashboard();
-            setInterval(buscarEAtualizarDashboard, 60000); // Polling secundário de segurança
+            setInterval(buscarEAtualizarDashboard, 60000);
         });
     </script>
 </body>

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q.C Software - Workflow e Relatórios</title>
+
+    <script>
+        if (!sessionStorage.getItem('qc_token')) {
+            window.location.replace('login.html');
+        }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        /* Cabeçalho Padrão */
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 15px 30px;
+            background-color: #1e293b;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #334155;
+        }
+        .header-left { width: 260px; flex-shrink: 0; }
+        .header-left img { width: 90px; height: auto; display: block; }
+        .header-center { text-align: center; flex-grow: 1; }
+        .header-center h1 { margin: 0; font-size: 24px; display: inline-flex; align-items: center; gap: 10px; }
+        .header-center p { margin: 4px 0 0 0; color: #94a3b8; font-size: 13px; }
+        .header-right {
+            width: 260px;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .btn-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #0284c7;
+            color: #fff;
+            text-decoration: none;
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-nav:hover { background-color: #0369a1; }
+        .btn-sair { background-color: #ef4444; }
+        .btn-sair:hover { background-color: #dc2626; }
+
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 25px;
+        }
+
+        .print-only-header { display: none; }
+
+        /* Navegação entre Abas */
+        .tabs-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 12px;
+        }
+        .tab-btn {
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+        }
+
+        /* --- WORKFLOW KANBAN --- */
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+        .kanban-col {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 16px;
+            min-height: 450px;
+        }
+        .kanban-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #334155;
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .badge-count {
+            background: #0f172a;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .col-parado .kanban-header { border-color: #ef4444; color: #fca5a5; }
+        .col-manutencao .kanban-header { border-color: #eab308; color: #fde047; }
+        .col-normal .kanban-header { border-color: #22c55e; color: #86efac; }
+
+        .kanban-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 620px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .wf-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: left;
+        }
+        .wf-card.parado { border-left: 4px solid #ef4444; }
+        .wf-card.manutencao { border-left: 4px solid #eab308; }
+        .wf-card.normal { border-left: 4px solid #22c55e; }
+
+        .wf-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .wf-card-title { font-weight: 700; font-size: 15px; color: #f8fafc; }
+        .wf-meta { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+        .wf-desc {
+            background: #1e293b;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #e2e8f0;
+            margin: 8px 0;
+            white-space: pre-line;
+        }
+        .wf-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn-wf {
+            width: 100%;
+            padding: 9px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            background: #f1c40f;
+            color: #1e293b;
+            transition: background 0.2s;
+        }
+        .btn-wf:hover { background: #d4ac0d; }
+
+        /* --- RELATÓRIOS --- */
+        .filtros-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .filtro-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 175px;
+        }
+        .filtro-item label { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+        .filtro-item select, .filtro-item input {
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #fff;
+            font-size: 14px;
+            height: 40px;
+            color-scheme: dark;
+        }
+        .btn-limpar-data {
+            background: #334155;
+            color: #cbd5e1;
+            border: none;
+            padding: 0 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-limpar-data:hover { background: #475569; color: #fff; }
+        .btn-export {
+            background: #16a34a;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 40px;
+        }
+        .btn-export:hover { background: #15803d; }
+        .btn-pdf { background: #dc2626; }
+        .btn-pdf:hover { background: #b91c1c; }
+
+        .table-wrapper {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background: #0f172a;
+            color: #94a3b8;
+            padding: 14px 16px;
+            text-transform: uppercase;
+            font-size: 12px;
+            border-bottom: 1px solid #334155;
+        }
+        td {
+            padding: 13px 16px;
+            border-bottom: 1px solid #334155;
+            color: #e2e8f0;
+            vertical-align: top;
+        }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .pill-Normal { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+        .pill-Parado { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+        .pill-Manutenção { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid #eab308; }
+        .pill-Resolvido { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+        .pill-Aberto { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+
+        /* --- MODAL UNIFICADO --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            overflow-y: auto;
+        }
+        .modal-conteudo {
+            background-color: #2c3e50;
+            margin: 8% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 450px;
+            text-align: left;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.6);
+            border: 1px solid #34495e;
+        }
+        .modal-conteudo h2 {
+            margin-top: 0;
+            color: #ecf0f1;
+            font-size: 22px;
+            border-bottom: 2px solid #34495e;
+            padding-bottom: 12px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        .campo-grupo { margin-bottom: 20px; }
+        .campo-grupo label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #bdc3c7;
+            font-weight: 700;
+        }
+        .campo-grupo input, .campo-grupo textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #34495e;
+            background: #1e222b;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+        .campo-grupo input:disabled, .campo-grupo textarea:disabled {
+            color: #95a5a6;
+            background: #252a34;
+            border-color: #2c3e50;
+        }
+        .botoes-modal {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 25px;
+        }
+        .btn-modal {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            font-family: 'Roboto', sans-serif;
+            transition: background 0.2s;
+        }
+        .btn-modal-cancelar { background: #7f8c8d; color: #ffffff; }
+        .btn-modal-cancelar:hover { background: #95a5a6; }
+        .btn-modal-acao { background: #f1c40f; color: #1e293b; }
+        .btn-modal-acao:hover { background: #d4ac0d; }
+
+        @media (max-width: 950px) {
+            .workflow-grid { grid-template-columns: 1fr; }
+            .header-container { flex-direction: column; gap: 12px; }
+            .header-left, .header-right { width: 100%; justify-content: center; text-align: center; }
+            .header-left img { margin: 0 auto; }
+        }
+
+        /* --- IMPRESSÃO / PDF --- */
+        @media print {
+            @page { size: A4 landscape; margin: 12mm; }
+            body { background: #ffffff !important; color: #000000 !important; }
+            .header-container, .tabs-bar, .filtros-box, #secao-workflow, .modal { display: none !important; }
+            #secao-relatorio { display: block !important; }
+            .container { max-width: 100%; padding: 0; }
+            .print-only-header {
+                display: flex !important;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 2px solid #1e293b;
+                padding-bottom: 12px;
+                margin-bottom: 16px;
+                color: #0f172a;
+            }
+            .print-only-header img { width: 75px; filter: invert(1) hue-rotate(180deg); }
+            .print-only-header h2 { margin: 0; font-size: 18px; color: #0f172a; }
+            .print-only-header p { margin: 3px 0 0 0; font-size: 12px; color: #475569; }
+            .table-wrapper { background: #ffffff !important; border: 1px solid #cbd5e1 !important; border-radius: 0; }
+            table { font-size: 11px; color: #000000 !important; }
+            th { background: #e2e8f0 !important; color: #0f172a !important; border-bottom: 1px solid #94a3b8 !important; padding: 8px 10px; }
+            td { color: #1e293b !important; border-bottom: 1px solid #cbd5e1 !important; padding: 8px 10px; }
+            .pill { border: 1px solid #64748b !important; color: #0f172a !important; background: #f1f5f9 !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header-container">
+        <div class="header-left">
+            <img src="logoqc.png" alt="Q.C Software">
+        </div>
+        <div class="header-center">
+            <h1><i class="fa-solid fa-clipboard-list" style="color:#38bdf8;"></i> Workflow & Relatórios</h1>
+            <p>Acompanhamento de Ocorrências e Histórico das Máquinas</p>
+        </div>
+        <div class="header-right">
+            <a href="index.html" class="btn-nav"><i class="fa-solid fa-map-location-dot"></i> Mapa</a>
+            <a href="dashboard.html" class="btn-nav"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+            <button type="button" onclick="sairDoSistema()" class="btn-nav btn-sair"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs-bar">
+            <button class="tab-btn active" id="tab-btn-workflow" onclick="alternarAba('workflow')">
+                <i class="fa-solid fa-diagram-project"></i> Workflow Operacional (Tempo Real)
+            </button>
+            <button class="tab-btn" id="tab-btn-relatorio" onclick="alternarAba('relatorio')">
+                <i class="fa-solid fa-table-list"></i> Relatório Histórico de Ocorrências
+            </button>
+        </div>
+
+        <!-- ABA 1: WORKFLOW VISUAL -->
+        <section id="secao-workflow">
+            <div class="workflow-grid">
+                <div class="kanban-col col-parado">
+                    <div class="kanban-header">
+                        <span><i class="fa-solid fa-circle-xmark"></i> 1. Paradas / Alerta</span>
+                        <span class="badge-count" id="count-parado">0</span>
+                    </div>
+                    <div class="kanban-list" id="lista-parado"></div>
+                </div>
+
+                <div class="kanban-col col-manutencao">
+                    <div class="kanban-header">
+                        <span><i class="fa-solid fa-wrench"></i> 2. Em Manutenção</span>
+                        <span class="badge-count" id="count-manutencao">0</span>
+                    </div>
+                    <div class="kanban-list" id="lista-manutencao"></div>
+                </div>
+
+                <div class="kanban-col col-normal">
+                    <div class="kanban-header">
+                        <span><i class="fa-solid fa-circle-check"></i> 3. Operação Normal</span>
+                        <span class="badge-count" id="count-normal">0</span>
+                    </div>
+                    <div class="kanban-list" id="lista-normal"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: RELATÓRIO HISTÓRICO -->
+        <section id="secao-relatorio" style="display: none;">
+            <div class="print-only-header">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <img src="logoqc.png" alt="Q.C Software">
+                    <div>
+                        <h2>Q.C Software — Relatório Histórico de Ocorrências</h2>
+                        <p id="print-info-filtro">Filtro: Todos os Status</p>
+                    </div>
+                </div>
+                <div style="text-align:right; font-size:11px; color:#475569;">
+                    <div><strong>Emitido em:</strong> <span id="print-data-emissao"></span></div>
+                    <div><strong>Total de registros:</strong> <span id="print-total-registros">0</span></div>
+                </div>
+            </div>
+
+            <div class="filtros-box">
+                <div class="filtro-item">
+                    <label>Status Atual da Máquina</label>
+                    <select id="filtro-status" onchange="carregarRelatorio()">
+                        <option value="TODOS">Todos os Status</option>
+                        <option value="Parado">Parado</option>
+                        <option value="Manutenção">Em Manutenção</option>
+                        <option value="Normal">Normal</option>
+                    </select>
+                </div>
+
+                <div class="filtro-item">
+                    <label>Data do Registro</label>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <input type="date" id="filtro-data" onchange="filtrarTabelaLocal()">
+                        <button type="button" class="btn-limpar-data" title="Limpar data" onclick="limparFiltroData()">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filtro-item" style="flex-grow: 1;">
+                    <label>Buscar (Máquina, Colaborador ou Problema)</label>
+                    <input type="text" id="filtro-busca" placeholder="Ex: MÁQUINA - 02, Engrenagem..." oninput="filtrarTabelaLocal()">
+                </div>
+
+                <button class="btn-export" onclick="exportarCSV()">
+                    <i class="fa-solid fa-file-excel"></i> Exportar CSV
+                </button>
+                <button class="btn-export btn-pdf" onclick="imprimirRelatorioPDF()">
+                    <i class="fa-solid fa-file-pdf"></i> Imprimir / PDF
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Máquina</th>
+                            <th>Status Atual</th>
+                            <th>Data / Hora</th>
+                            <th>Colaborador</th>
+                            <th>Descrição / Histórico</th>
+                            <th>Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-historico-body">
+                        <tr><td colspan="7" style="text-align:center;">Carregando registros...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- MODAL ÚNICO UNIFICADO (Sem Duplicidade) -->
+    <div id="modal-ocorrencia" class="modal">
+        <div class="modal-conteudo">
+            <h2 id="modal-titulo">Histórico / Ocorrência</h2>
+            <input type="hidden" id="modal-id-maquina">
+            <input type="hidden" id="modal-status-atual">
+
+            <div class="campo-grupo">
+                <label>Data / Hora do Registro</label>
+                <input type="text" id="modal-data-hora" disabled>
+            </div>
+            <div class="campo-grupo">
+                <label>Colaborador Responsável</label>
+                <input type="text" id="modal-colaborador" disabled>
+            </div>
+            <div class="campo-grupo">
+                <label>Descrição Detalhada do Problema</label>
+                <textarea id="modal-descricao" rows="3" disabled></textarea>
+            </div>
+
+            <div class="botoes-modal">
+                <button type="button" class="btn-modal btn-modal-cancelar" onclick="fecharModalOcorrencia()">Cancelar</button>
+                <button type="button" id="btn-modal-confirmar" class="btn-modal btn-modal-acao" onclick="executarAcaoModal()">
+                    Iniciar / Finalizar Manutenção
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dadosHistoricoCache = [];
+        let dadosFiltradosAtuais = [];
+
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('qc_token')}`
+            };
+        }
+
+        function verificarAuth(res) {
+            if (res.status === 401) {
+                sessionStorage.clear();
+                window.location.replace('login.html');
+                return false;
+            }
+            return true;
+        }
+
+        function sairDoSistema() {
+            fetch('/api/logout', { method: 'POST', headers: getHeaders() }).finally(() => {
+                sessionStorage.clear();
+                window.location.replace('login.html');
+            });
+        }
+
+        function alternarAba(aba) {
+            document.getElementById('secao-workflow').style.display = aba === 'workflow' ? 'block' : 'none';
+            document.getElementById('secao-relatorio').style.display = aba === 'relatorio' ? 'block' : 'none';
+            document.getElementById('tab-btn-workflow').classList.toggle('active', aba === 'workflow');
+            document.getElementById('tab-btn-relatorio').classList.toggle('active', aba === 'relatorio');
+
+            if (aba === 'workflow') carregarWorkflow();
+            if (aba === 'relatorio') carregarRelatorio();
+        }
+
+        // --- FUNÇÕES DO WORKFLOW ---
+        async function carregarWorkflow() {
+            try {
+                const res = await fetch('/api/workflow/maquinas', { headers: getHeaders() });
+                if (!verificarAuth(res)) return;
+                const data = await res.json();
+
+                renderizarColuna('lista-parado', 'count-parado', data['Parado'] || [], 'parado');
+                renderizarColuna('lista-manutencao', 'count-manutencao', data['Manutenção'] || [], 'manutencao');
+                renderizarColuna('lista-normal', 'count-normal', data['Normal'] || [], 'normal');
+            } catch (e) {
+                console.error("Erro ao carregar workflow:", e);
+            }
+        }
+
+        function renderizarColuna(elId, countId, lista, tipo) {
+            const container = document.getElementById(elId);
+            document.getElementById(countId).innerText = lista.length;
+
+            if (lista.length === 0) {
+                container.innerHTML = `<p style="color:#64748b; font-size:13px; text-align:center;">Nenhuma máquina neste estágio</p>`;
+                return;
+            }
+
+            container.innerHTML = lista.map(m => {
+                const oc = m.ocorrencia_aberta;
+                let detalhesHtml = '';
+                if (oc) {
+                    detalhesHtml = `
+                        <div class="wf-meta"><i class="fa-regular fa-clock"></i> ${oc.data_hora} • <strong>${oc.colaborador}</strong></div>
+                        <div class="wf-desc">${oc.problema}</div>
+                    `;
+                }
+
+                let botoesHtml = '';
+                if (tipo === 'parado' || tipo === 'manutencao') {
+                    botoesHtml = `
+                        <div class="wf-actions">
+                            <button class="btn-wf" onclick="abrirModalUnificado(${m.id_maquinas}, '${m.nome}', '${m.status}')">
+                                Iniciar / Finalizar Manutenção
+                            </button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="wf-card ${tipo}">
+                        <div class="wf-card-top">
+                            <span class="wf-card-title">${m.nome}</span>
+                            <span style="font-size:11px; color:#94a3b8;">ID #${m.id_maquinas}</span>
+                        </div>
+                        ${detalhesHtml}
+                        ${botoesHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- MODAL ÚNICO ---
+        async function abrirModalUnificado(idMaquina, nomeMaquina, statusAtual) {
+            document.getElementById('modal-id-maquina').value = idMaquina;
+            document.getElementById('modal-status-atual').value = statusAtual;
+            document.getElementById('modal-titulo').innerText = `Histórico / Ocorrência - ${nomeMaquina} (#${idMaquina})`;
+
+            try {
+                const res = await fetch(`/api/mapamaquinas/${idMaquina}/ocorrencia`, { headers: getHeaders() });
+                if (!verificarAuth(res)) return;
+                const oc = await res.json();
+
+                document.getElementById('modal-data-hora').value = oc.data_hora || new Date().toLocaleString('pt-BR');
+                document.getElementById('modal-colaborador').value = oc.colaborador || '';
+                document.getElementById('modal-descricao').value = oc.problema || '';
+            } catch (e) {
+                document.getElementById('modal-data-hora').value = new Date().toLocaleString('pt-BR');
+                document.getElementById('modal-colaborador').value = '';
+                document.getElementById('modal-descricao').value = '';
+            }
+
+            document.getElementById('modal-ocorrencia').style.display = 'block';
+        }
+
+        function fecharModalOcorrencia() {
+            document.getElementById('modal-ocorrencia').style.display = 'none';
+        }
+
+        async function executarAcaoModal() {
+            const id = document.getElementById('modal-id-maquina').value;
+            const statusAtual = document.getElementById('modal-status-atual').value;
+            const btn = document.getElementById('btn-modal-confirmar');
+            btn.disabled = true;
+
+            try {
+                if (statusAtual === 'Parado') {
+                    const res = await fetch(`/api/mapamaquinas/${id}/manutencao`, {
+                        method: 'POST',
+                        headers: getHeaders()
+                    });
+                    if (verificarAuth(res) && res.ok) {
+                        fecharModalOcorrencia();
+                        carregarWorkflow();
+                    }
+                } else if (statusAtual === 'Manutenção') {
+                    const agora = new Date().toLocaleString('pt-BR');
+                    const colaborador = sessionStorage.getItem('qc_usuario') || document.getElementById('modal-colaborador').value || 'Operador';
+                    const res = await fetch(`/api/mapamaquinas/${id}/resolver`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({
+                            data_hora: agora,
+                            colaborador: colaborador,
+                            comentario: 'Manutenção finalizada.'
+                        })
+                    });
+                    if (verificarAuth(res) && res.ok) {
+                        fecharModalOcorrencia();
+                        carregarWorkflow();
+                    }
+                }
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // --- FUNÇÕES DO RELATÓRIO HISTÓRICO ---
+        function formatarDataInputParaBR(dataISO) {
+            if (!dataISO) return '';
+            const [ano, mes, dia] = dataISO.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function limparFiltroData() {
+            document.getElementById('filtro-data').value = '';
+            filtrarTabelaLocal();
+        }
+
+        async function carregarRelatorio() {
+            const status = document.getElementById('filtro-status').value;
+            const res = await fetch(`/api/relatorios/historico?status=${encodeURIComponent(status)}`, {
+                headers: getHeaders()
+            });
+            if (!verificarAuth(res)) return;
+            dadosHistoricoCache = await res.json();
+            filtrarTabelaLocal();
+        }
+
+        function filtrarTabelaLocal() {
+            const termo = document.getElementById('filtro-busca').value.toLowerCase();
+            const dataSelecionadaISO = document.getElementById('filtro-data').value;
+            const dataBR = formatarDataInputParaBR(dataSelecionadaISO);
+
+            dadosFiltradosAtuais = dadosHistoricoCache.filter(item => {
+                const bateTexto =
+                    item.nome_maquina.toLowerCase().includes(termo) ||
+                    (item.colaborador || '').toLowerCase().includes(termo) ||
+                    (item.problema || '').toLowerCase().includes(termo);
+
+                const bateData = !dataBR || (item.data_hora || '').includes(dataBR);
+
+                return bateTexto && bateData;
+            });
+
+            document.getElementById('print-total-registros').innerText = dadosFiltradosAtuais.length;
+
+            const tbody = document.getElementById('tabela-historico-body');
+            if (dadosFiltradosAtuais.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">Nenhum registro encontrado para os filtros aplicados.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = dadosFiltradosAtuais.map(r => `
+                <tr>
+                    <td>#${r.id_ocorrencia}</td>
+                    <td><strong>${r.nome_maquina}</strong></td>
+                    <td><span class="pill pill-${r.status_maquina}">${r.status_maquina}</span></td>
+                    <td>${r.data_hora || '-'}</td>
+                    <td>${r.colaborador || '-'}</td>
+                    <td style="white-space: pre-line; max-width: 420px;">${r.problema}</td>
+                    <td><span class="pill ${r.situacao === 'Resolvido' ? 'pill-Resolvido' : 'pill-Aberto'}">${r.situacao}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function imprimirRelatorioPDF() {
+            const selectStatus = document.getElementById('filtro-status');
+            const textoStatus = selectStatus.options[selectStatus.selectedIndex].text;
+            const dataBR = formatarDataInputParaBR(document.getElementById('filtro-data').value);
+            const termoBusca = document.getElementById('filtro-busca').value.trim();
+
+            let resumoFiltro = `Status: ${textoStatus}`;
+            if (dataBR) resumoFiltro += ` | Data: ${dataBR}`;
+            if (termoBusca) resumoFiltro += ` | Busca: "${termoBusca}"`;
+
+            document.getElementById('print-info-filtro').innerText = resumoFiltro;
+            document.getElementById('print-data-emissao').innerText = new Date().toLocaleString('pt-BR');
+
+            window.print();
+        }
+
+        function exportarCSV() {
+            const listaExportar = dadosFiltradosAtuais.length ? dadosFiltradosAtuais : dadosHistoricoCache;
+            if (!listaExportar.length) return;
+
+            const cabecalho = ['ID', 'Maquina', 'Status Atual', 'Data Hora', 'Colaborador', 'Problema', 'Situacao'];
+            const linhas = listaExportar.map(r => [
+                r.id_ocorrencia,
+                `"${r.nome_maquina}"`,
+                `"${r.status_maquina}"`,
+                `"${r.data_hora || ''}"`,
+                `"${(r.colaborador || '').replace(/"/g, '""')}"`,
+                `"${(r.problema || '').replace(/\n/g, ' ').replace(/"/g, '""')}"`,
+                `"${r.situacao}"`
+            ].join(';'));
+
+            const csvContent = "\uFEFF" + [cabecalho.join(';'), ...linhas].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `relatorio_maquinas_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarWorkflow();
+            setInterval(() => {
+                if (document.getElementById('secao-workflow').style.display !== 'none') {
+                    carregarWorkflow();
+                }
+            }, 15000);
+        });
+    </script>
+</body>
+</html>
